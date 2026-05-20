@@ -7,8 +7,6 @@ import tracemalloc
 import openpyxl
 from anthropic import Anthropic
 
-import dashboard_export
-
 
 # ---------------------------------------------------------
 # Memory Tracking
