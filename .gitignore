@@ -1,0 +1,31 @@
+# Secrets — NEVER commit these
+.streamlit/secrets.toml
+.env
+*.env
+*.pem
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Data (don't commit client spend files)
+*.xlsx
+*.xls
+*.csv
+*.json
+!schema.json

@@ -1,0 +1,13 @@
+[theme]
+# Treya-leaning palette — adjust to match your brand
+primaryColor = "#002060"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F4F6FA"
+textColor = "#1A1A1A"
+font = "sans serif"
+
+[server]
+maxUploadSize = 200
+
+[browser]
+gatherUsageStats = false
