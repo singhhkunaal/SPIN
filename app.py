@@ -8,9 +8,9 @@ import pipeline
 import storage
 
 
-# ---------------------------------------------------------------------------
-# Page config
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------
+# Page Config
+# -------------------------------------------------------------------
 st.set_page_config(
     page_title="Treya Spend Diagnostic",
     page_icon="📊",
@@ -18,12 +18,12 @@ st.set_page_config(
 )
 
 
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------
 # Sidebar
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------
 with st.sidebar:
     st.markdown("### Treya Spend Diagnostic")
-    st.caption("AP analysis & savings opportunity tool")
+    st.caption("AI-powered AP spend analysis")
 
     st.divider()
 
@@ -33,28 +33,31 @@ with st.sidebar:
         else "❌ Missing"
     )
 
-    supa_status = (
+    supabase_status = (
         "✅ Connected"
         if st.secrets.get("SUPABASE_URL")
         and st.secrets.get("SUPABASE_KEY")
-        else "⚠️ Not configured"
+        else "⚠️ Missing"
     )
 
     st.caption(f"Anthropic API: {api_status}")
-    st.caption(f"Supabase: {supa_status}")
+    st.caption(f"Supabase: {supabase_status}")
 
 
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------
 # Main UI
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------
 st.title("Treya Spend Diagnostic")
 
 st.caption(
-    "Upload a populated diagnostic template, run AI enrichment, "
-    "and download the completed workbook."
+    "Upload a populated diagnostic template, "
+    "run AI enrichment, and download the completed workbook."
 )
 
 
+# -------------------------------------------------------------------
+# File Upload
+# -------------------------------------------------------------------
 uploaded = st.file_uploader(
     "Upload populated diagnostic template (.xlsx)",
     type=["xlsx"],
@@ -62,9 +65,12 @@ uploaded = st.file_uploader(
 
 
 if uploaded:
-    st.success(f"Loaded file: {uploaded.name}")
+    st.success(f"Loaded workbook: {uploaded.name}")
 
 
+# -------------------------------------------------------------------
+# Run Button
+# -------------------------------------------------------------------
 run_btn = st.button(
     "Run Spend Analysis",
     type="primary",
@@ -72,7 +78,11 @@ run_btn = st.button(
 )
 
 
+# -------------------------------------------------------------------
+# Pipeline Execution
+# -------------------------------------------------------------------
 if run_btn:
+
     if not uploaded:
         st.error("Please upload a workbook first.")
         st.stop()
@@ -80,7 +90,7 @@ if run_btn:
     api_key = st.secrets.get("CLAUDE_API_KEY")
 
     if not api_key:
-        st.error("Missing CLAUDE_API_KEY in Streamlit secrets")
+        st.error("Missing CLAUDE_API_KEY in Streamlit secrets.")
         st.stop()
 
     supabase_url = st.secrets.get("SUPABASE_URL")
@@ -92,11 +102,12 @@ if run_btn:
 
     def push_log(msg: str):
         logs.append(msg)
-        log_container.code("
-".join(logs))
+        log_container.code("\n".join(logs))
 
     try:
+
         with st.spinner("Running pipeline..."):
+
             result = pipeline.run_pipeline(
                 uploaded_workbook_bytes=uploaded.getvalue(),
                 anthropic_api_key=api_key,
@@ -105,26 +116,41 @@ if run_btn:
                 status=push_log,
             )
 
-        # Compatible with both return formats
+        # -----------------------------------------------------------
+        # Handle both old/new pipeline return formats
+        # -----------------------------------------------------------
         if len(result) == 3:
             output_bytes, filename, dashboard_data = result
         else:
             output_bytes, filename = result
             dashboard_data = {}
 
+        # -----------------------------------------------------------
+        # Success
+        # -----------------------------------------------------------
         st.success("Pipeline completed successfully")
 
+        # -----------------------------------------------------------
         # Save dashboard payload separately
+        # -----------------------------------------------------------
         try:
-            dashboard_id = storage.save_dashboard_json(dashboard_data)
+            dashboard_id = storage.save_dashboard_json(
+                dashboard_data
+            )
 
             st.success(
-                f"Dashboard payload saved successfully · ID: {dashboard_id}"
+                f"Dashboard payload saved successfully · "
+                f"ID: {dashboard_id}"
             )
 
         except Exception as e:
-            st.warning(f"Could not save dashboard payload: {e}")
+            st.warning(
+                f"Could not save dashboard payload: {e}"
+            )
 
+        # -----------------------------------------------------------
+        # Download Workbook
+        # -----------------------------------------------------------
         st.download_button(
             label="Download Completed Workbook",
             data=output_bytes,
@@ -133,12 +159,17 @@ if run_btn:
             use_container_width=True,
         )
 
+        # -----------------------------------------------------------
+        # Status Message
+        # -----------------------------------------------------------
         st.info(
-            "Dashboard frontend migration is currently in progress. "
-            "Backend processing has been stabilized first."
+            "Dashboard frontend migration is currently "
+            "in progress. Backend processing has been "
+            "stabilized first."
         )
 
     except Exception as e:
+
         st.error(f"Pipeline failed: {e}")
 
         with st.expander("Full traceback"):
