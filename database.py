@@ -143,15 +143,25 @@ def load_savings_benchmarks(client: Optional[Client]) -> dict:
         return {}
     try:
         res = client.table("savings_benchmarks_memory").select("*").execute()
-        return {
-            row["category"]: {
+        out: dict = {}
+        for row in (res.data or []):
+            strategy = row.get("strategy_json")
+            if isinstance(strategy, str):
+                try:
+                    import json as _json
+                    strategy = _json.loads(strategy) if strategy else {}
+                except Exception:
+                    strategy = {}
+            elif strategy is None:
+                strategy = {}
+            out[row["category"]] = {
                 "addressability": float(row.get("addressability") or 0.8),
                 "savings_low_pct": float(row.get("savings_low_pct") or 0.01),
                 "savings_high_pct": float(row.get("savings_high_pct") or 0.02),
                 "notes": row.get("notes", ""),
+                "strategy": strategy,
             }
-            for row in (res.data or [])
-        }
+        return out
     except Exception as e:
         print(f"  ⚠️ Could not load savings_benchmarks: {e}")
         return {}
@@ -161,16 +171,18 @@ def save_savings_benchmarks(client: Optional[Client], batch: dict) -> None:
     if client is None or not batch:
         return
     try:
-        rows = [
-            {
+        import json as _json
+        rows = []
+        for k, v in batch.items():
+            strategy = v.get("strategy") or {}
+            rows.append({
                 "category": k,
                 "addressability": v.get("addressability", 0.8),
                 "savings_low_pct": v.get("savings_low_pct", 0.01),
                 "savings_high_pct": v.get("savings_high_pct", 0.02),
                 "notes": v.get("notes", ""),
-            }
-            for k, v in batch.items()
-        ]
+                "strategy_json": _json.dumps(strategy) if strategy else None,
+            })
         client.table("savings_benchmarks_memory").upsert(rows, on_conflict="category").execute()
     except Exception as e:
         print(f"  ⚠️ Could not save savings_benchmarks: {e}")
